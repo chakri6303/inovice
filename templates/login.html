@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Passcode Login - Invoice Generator</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-5">
+        <div class="card p-4">
+          <h4 class="mb-3">Enter Passcode</h4>
+
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, msg in messages %}
+                <div class="alert alert-{{ category }}">{{ msg }}</div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+
+          <!-- {% if not totp_enabled %}
+            <div class="alert alert-warning">TOTP not configured. <a href="{{ url_for('setup_2fa') }}">Setup 2FA</a> first.</div>
+          {% endif %} -->
+
+          <form method="post" action="{{ url_for('login') }}">
+            <div class="mb-3">
+              <label class="form-label">6-digit passcode</label>
+              <input name="code" class="form-control" placeholder="123456" inputmode="numeric" pattern="\d{6}" required>
+              <div class="small text-muted">Open your Authenticator app and enter the current code.</div>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-primary" type="submit">Unlock</button>
+              <!-- <a class="btn btn-outline-secondary" href="{{ url_for('setup_2fa') }}">Setup 2FA</a> -->
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
