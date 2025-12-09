@@ -379,119 +379,23 @@ def generate_invoice():
     replace_placeholders_in_doc(doc, replacements)
     remove_trailing_empty_paragraphs(doc)
 
-    # Save temporary DOCX to convert
+    # Save DOCX and send as download
     timestamp = int(time.time())
-    tmp_docx = os.path.join(OUTPUT_DIR, f"tmp_generated_{timestamp}.docx")
+    docx_filename = f"G_BUILDCON_Invoice_{invoice_no}.docx"
+    safe_docx_filename = secure_filename(docx_filename)
+    output_docx = os.path.join(OUTPUT_DIR, safe_docx_filename)
     try:
-        doc.save(tmp_docx)
+        doc.save(output_docx)
     except Exception as e:
         logger.exception("Failed to save DOCX: %s", e)
         return f"Failed to save docx: {e}", 500
 
-    # Prepare PDF name (friendly) and safe filename
-    pdf_filename = f"G BUILDCON Invoice - {invoice_no}.pdf"
-    safe_pdf_filename = secure_filename(pdf_filename)
-    output_pdf = os.path.join(OUTPUT_DIR, safe_pdf_filename)
-
-    # ---------- Conversion: try docx2pdf (Word/COM) first, with COM init, then LibreOffice fallback ----------
-    conversion_error = None
-    converted_ok = False
-
-    # Try docx2pdf (Word/COM) first — but ensure COM is initialized on Windows
-    try:
-        if pythoncom is not None:
-            try:
-                pythoncom.CoInitialize()
-            except Exception as e:
-                logger.warning("pythoncom.CoInitialize() warning: %s", e)
-
-        try:
-            # Import docx2pdf dynamically
-            from docx2pdf import convert as docx2pdf_convert
-            try:
-                docx2pdf_convert(tmp_docx, output_pdf)
-                logger.info("Converted DOCX to PDF via docx2pdf: %s", output_pdf)
-                converted_ok = True
-            except Exception as e:
-                conversion_error = f"docx2pdf conversion failed: {e}"
-                logger.exception("docx2pdf conversion failed: %s", e)
-        except Exception as e:
-            # docx2pdf not available or import failed
-            conversion_error = f"docx2pdf import failed: {e}"
-            logger.exception("docx2pdf import/usage failed: %s", e)
-    finally:
-        if pythoncom is not None:
-            try:
-                pythoncom.CoUninitialize()
-            except Exception:
-                pass
-
-    # If docx2pdf didn't work, try LibreOffice (soffice) headless conversion as a fallback
-    if not converted_ok:
-        try:
-            # Find soffice/libreoffice binary
-            soffice_cmd = None
-            for cmd in ("soffice", "libreoffice", "lowriter"):
-                if shutil.which(cmd):
-                    soffice_cmd = cmd
-                    break
-
-            if not soffice_cmd:
-                raise FileNotFoundError("LibreOffice 'soffice' not found on PATH")
-
-            # Run conversion
-            run = subprocess.run(
-                [soffice_cmd, "--headless", "--convert-to", "pdf", tmp_docx, "--outdir", OUTPUT_DIR],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-
-            # LibreOffice output file name: same base name, .pdf extension, located in OUTPUT_DIR
-            tmp_pdf_name = Path(tmp_docx).with_suffix(".pdf").name
-            tmp_pdf_path = os.path.join(OUTPUT_DIR, tmp_pdf_name)
-
-            if not os.path.exists(tmp_pdf_path):
-                raise FileNotFoundError(f"LibreOffice conversion claimed success but {tmp_pdf_path} not found. stdout: {run.stdout} stderr: {run.stderr}")
-
-            # Move/rename to desired output_pdf name if needed
-            if os.path.abspath(tmp_pdf_path) != os.path.abspath(output_pdf):
-                try:
-                    if os.path.exists(output_pdf):
-                        os.remove(output_pdf)
-                    shutil.move(tmp_pdf_path, output_pdf)
-                except Exception as e:
-                    raise RuntimeError(f"Failed to move LibreOffice PDF: {e}")
-
-            logger.info("Converted DOCX to PDF via LibreOffice: %s", output_pdf)
-            converted_ok = True
-
-        except Exception as e:
-            conversion_error = (conversion_error or "") + f" | LibreOffice conversion failed: {e}"
-            logger.exception("LibreOffice conversion failed: %s", e)
-
-    # Remove temporary docx in all cases (we keep output folder PDF-only)
-    try:
-        if os.path.exists(tmp_docx):
-            os.remove(tmp_docx)
-    except Exception:
-        pass
-
-    if not converted_ok:
-        msg = (
-            "Failed to convert to PDF. "
-            "On Windows ensure MS Word is installed and accessible; on Linux install LibreOffice. "
-            "Conversion details: " + str(conversion_error)
-        )
-        return (msg, 500)
-
-    # Send the PDF as download
+    # Send the DOCX as download
     return send_file(
-        output_pdf,
+        output_docx,
         as_attachment=True,
-        download_name=pdf_filename,
-        mimetype="application/pdf"
+        download_name=docx_filename,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
 @app.route('/download/<path:filename>')
@@ -516,4 +420,5 @@ def download_file(filename):
     return send_file(full_path, as_attachment=True, download_name=friendly_name, mimetype="application/pdf")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=80)
+

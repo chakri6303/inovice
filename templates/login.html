@@ -1,41 +1,75 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- MOBILE FRIENDLY -->
   <title>Passcode Login - Invoice Generator</title>
+
+  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: #f7f7f7;
+    }
+    .login-card {
+      border-radius: 14px;
+      padding: 25px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .container {
+      max-width: 450px; /* prevents huge width on desktop */
+    }
+    input {
+      font-size: 18px; /* better for mobile typing */
+      letter-spacing: 3px;
+      text-align: center;
+    }
+    @media (max-width: 576px) {
+      h4 {
+        font-size: 20px;
+      }
+    }
+  </style>
 </head>
-<body class="bg-light">
+
+<body>
   <div class="container py-5">
     <div class="row justify-content-center">
-      <div class="col-md-5">
-        <div class="card p-4">
-          <h4 class="mb-3">Enter Passcode</h4>
+      <div class="col-12 px-3">
+
+        <div class="card login-card">
+
+          <h4 class="mb-3 text-center">Enter Passcode</h4>
 
           {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
               {% for category, msg in messages %}
-                <div class="alert alert-{{ category }}">{{ msg }}</div>
+                <div class="alert alert-{{ category }} text-center">{{ msg }}</div>
               {% endfor %}
             {% endif %}
           {% endwith %}
 
-          <!-- {% if not totp_enabled %}
-            <div class="alert alert-warning">TOTP not configured. <a href="{{ url_for('setup_2fa') }}">Setup 2FA</a> first.</div>
-          {% endif %} -->
-
           <form method="post" action="{{ url_for('login') }}">
             <div class="mb-3">
               <label class="form-label">6-digit passcode</label>
-              <input name="code" class="form-control" placeholder="123456" inputmode="numeric" pattern="\d{6}" required>
-              <div class="small text-muted">Open your Authenticator app and enter the current code.</div>
+              <input name="code" class="form-control"
+                     placeholder="123456"
+                     inputmode="numeric"
+                     pattern="\d{6}"
+                     maxlength="6"
+                     required>
+              <div class="small text-muted mt-1 text-center">
+                Enter the current code from your Authenticator app.
+              </div>
             </div>
-            <div class="d-flex gap-2">
-              <button class="btn btn-primary" type="submit">Unlock</button>
-              <!-- <a class="btn btn-outline-secondary" href="{{ url_for('setup_2fa') }}">Setup 2FA</a> -->
-            </div>
+
+            <button class="btn btn-primary w-100 py-2" type="submit">Unlock</button>
+
           </form>
+
         </div>
+
       </div>
     </div>
   </div>
